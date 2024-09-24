@@ -5,6 +5,7 @@ const { validateSignUpData } = require("./utils/validation");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
+const {userAuth} = require("./middlewares/auth");
 
 const app = express();
 
@@ -62,40 +63,33 @@ app.post("/login",async(req,res)=>{
       throw new Error("Invalid credentials")
     }else{
       // create jwt token
-      const token = await jwt.sign({_id:user._id},"Dev@Tinder1234");
+      const token = await jwt.sign({_id:user._id},"Dev@Tinder1234",{expiresIn:"7d"});
      
-      res.cookie("token",token);
+      res.cookie("token",token,{expires:new Date(Date.now() + 8 * 3600000)});
 
       res.status(200).send("Login Successfully !")
     }
     
   } catch (err) {
-    res.status(500).send("Something went wrong ! "+err.message);
+    res.status(500).send("ERROR "+err.message);
   }
 })
 
-app.get("/profile",async(req,res)=>{
+app.get("/profile",userAuth,async(req,res)=>{
   try{
-    const cookies = req.cookies;
-    const token = cookies.token;
-    if(!token){
-      throw new Error("Invalid Token !")
-    }
-    // verify token
-    const decodedMsg = await jwt.verify(token, "Dev@Tinder1234");
-    console.log(decodedMsg);
-    const userId = decodedMsg._id;
-
-    // find user data from db
-    const user = await User.findById(userId);
-    if(!user){
-      throw new Error("User data not found !")
-    }
-    res.status(200).send(user);
+    res.status(200).send(req.user);
   }catch(err){
-    res.status(500).send(err.message);
+    res.status(500).send("Error "+err.message);
   }
-  
+})
+
+app.post("/sentConnectionRequest",userAuth,(req,res)=>{
+  try{
+    const user = req.user;
+    res.status(200).send(user.firstName + " sent you a connection request !")
+  }catch(err){
+    res.status(500).send("Error "+ err.message);
+  }
 })
 
 app.get("/user", async (req, res) => {
