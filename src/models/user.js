@@ -1,28 +1,106 @@
 const mongoose = require("mongoose");
+var validator = require("validator");
 
-
-const userSchema = new mongoose.Schema({
-    firstName:{
-        type: String,
+const userSchema = new mongoose.Schema(
+  {
+    firstName: {
+      type: String,
+      required: true,
+      minlength: 2,
+      maxlength: 50,
     },
-    lastName:{
-        type: String,
+    lastName: {
+      type: String,
+      required: true,
+      minlength: 2,
+      maxlength: 50,
     },
-    emailId:{
-        type: String,
+    emailId: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      // match: /.+\@.+\..+/,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("Email Id not Valid! " + value);
+        }
+      },
     },
-    password:{
-        type: String,
+    password: {
+      type: String,
+      required: true,
+      minlength: 8,
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Please Enter Strong Password :" + value);
+        }
+      },
     },
-    age:{
-        type: Number,
+    age: {
+      type: Number,
+      min: 18,
+      max: 100,
     },
-    gender:{
-        type: String,
-    }
-})
+    gender: {
+      type: String,
+      // enum:["male","female","other"],
+      // message: "Gender data is not valid",
+      validate(value) {
+        if (!["male", "female", "other"].includes(value)) {
+          throw new Error("Gender data is not Valid :" + value);
+        }
+      },
+    },
+    photoUrl: {
+      type: String,
+      default:
+        "https://toppng.com/uploads/preview/donna-picarro-dummy-avatar-115633298255iautrofxa.png",
+      validate(value) {
+        if (!validator.isURL(value)) {
+          throw new Error("Photo URL is Invalid! " + value);
+        }
+      },
+    },
+    about: {
+      type: String,
+      default: "this is default value of user",
+      trim: true,
+      validate(value) {
+        if (!validator.isLength(value, { min: 5, max: 250 })) {
+          throw new Error(
+            "minimum length at least 5 and maximum should be 250 char"
+          );
+        }
+      },
+    },
+    skills: {
+      type: [String],
+      validate: [
+        {
+          validator: function (skillsArray) {
+            // Ensure it's an array and has at least 1 skill
+            if (!Array.isArray(skillsArray) && skillsArray.length > 0) {
+              throw new Error("Skills array must have at least one skill");
+            }
+          },
+        },
+        {
+          validator: function (skillsArray) {
+            // Ensure array has at most 5 skills
+            if (!Array.isArray(skillsArray) && skillsArray.length <= 15) {
+              throw new Error("Skills array can have at most 15 skills");
+            }
+          },
+        },
+      ],
+    },
+  },
+  { timestamps: true }
+);
 
 // const userModel = mongoose.model("User",userSchema);
 // module.exports = userModel;
 
-module.exports = mongoose.model("User",userSchema);
+module.exports = mongoose.model("User", userSchema);
